@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
 
+// custom hook to fetch data with useEffect a the first loading of the page
 const useFetch = (url) => {
   const [data, setData] = useState(null);
   const [isPending, setIsPending] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch(url)
+    const abortCont = new AbortController();
+
+    fetch(url, { signal: abortCont.signal })
       .then((res) => {
         if (!res.ok) {
           throw Error("Could not fetch the data from the serveur");
@@ -19,9 +22,14 @@ const useFetch = (url) => {
         setError(null);
       })
       .catch((err) => {
-        setError(err.message);
-        setIsPending(false);
+        if (err.name === "AbortError") {
+          console.log("fetch aborted");
+        } else {
+          setError(err.message);
+          setIsPending(false);
+        }
       });
+    return () => abortCont.abort();
   }, [url]);
 
   return { data, isPending, error };
